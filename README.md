@@ -5,6 +5,180 @@
 [![GoDoc](https://pkg.go.dev/badge/github.com/SpellingDragon/wechat-robot-go.svg)](https://pkg.go.dev/github.com/SpellingDragon/wechat-robot-go)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+English | [中文](#中文文档)
+
+Go SDK for WeChat Bot based on Tencent's official iLink Bot API.
+
+## Features
+
+- QR code login with automatic credential persistence
+- Long-polling message reception & HTTP message sending
+- **context_token persistence** for proactive messaging and process restart recovery
+- Typing indicator ("the other party is typing...")
+- Media file handling (AES-128-ECB encryption + CDN upload/download)
+- **Smart text splitting**: auto-splits long text at natural boundaries (newlines, sentences, spaces)
+- **Middleware support**: composable middleware chain (logging, panic recovery, custom)
+- **Graceful shutdown**: waits for in-flight handlers to complete
+- **Handler panic recovery**: panics don't crash the polling loop
+- Zero external dependencies, only Go standard library
+- Functional Options configuration pattern
+- Full `context.Context` support
+- Thread-safe, supports concurrent message handling
+
+## Quick Start
+
+### Installation
+
+```bash
+go get github.com/SpellingDragon/wechat-robot-go
+```
+
+### Minimal Example
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    "os/signal"
+    "syscall"
+
+    "github.com/SpellingDragon/wechat-robot-go/wechat"
+)
+
+func main() {
+    bot := wechat.NewBot()
+
+    ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+    defer cancel()
+
+    // QR code login (first time requires scanning, then auto-reuses credentials)
+    err := bot.Login(ctx, func(qrCode string) {
+        fmt.Println("Please scan the QR code with WeChat:")
+        fmt.Println(qrCode)
+    })
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "Login failed: %v\n", err)
+        os.Exit(1)
+    }
+
+    // Register message handler
+    bot.OnMessage(func(ctx context.Context, msg *wechat.Message) error {
+        text := msg.Text()
+        if text == "" {
+            return nil
+        }
+        return bot.Reply(ctx, msg, "Echo: "+text)
+    })
+
+    // Start Bot (blocks until Ctrl+C)
+    fmt.Println("Bot started, press Ctrl+C to stop")
+    bot.Run(ctx)
+}
+```
+
+### With Middleware
+
+```go
+bot := wechat.NewBot()
+
+// Register middlewares before Run
+bot.Use(
+    wechat.WithRecovery(slog.Default()),  // panic recovery
+    wechat.WithLogging(slog.Default()),   // request logging
+)
+
+bot.OnMessage(handler)
+bot.Run(ctx)
+```
+
+## API Reference
+
+### Bot
+
+| Method | Description |
+|--------|-------------|
+| `NewBot(opts ...Option) *Bot` | Create a Bot instance |
+| `Login(ctx, onQRCode) error` | QR code login (reuses existing credentials) |
+| `OnMessage(handler)` | Register message handler |
+| `Use(middlewares ...Middleware)` | Register middlewares |
+| `Run(ctx) error` | Start long-polling loop (blocks) |
+| `Stop()` | Stop polling (waits for in-flight handlers) |
+| `Reply(ctx, msg, text) error` | Reply to a message (auto context_token) |
+| `SendText(ctx, toUserID, text, contextToken) error` | Send text message |
+| `SendTextToUser(ctx, toUserID, text) error` | Proactive send (requires stored context_token) |
+| `SendTyping(ctx, toUserID) error` | Show "typing" indicator |
+| `StopTyping(ctx, toUserID) error` | Cancel "typing" indicator |
+| `UploadFile(ctx, data, fileType) (*UploadResult, error)` | Upload media file |
+| `DownloadFile(ctx, url, aesKey) ([]byte, error)` | Download and decrypt media |
+| `Client() *Client` | Get underlying HTTP client (advanced) |
+
+### Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `WithBaseURL(url)` | API server URL | `https://ilinkai.weixin.qq.com` |
+| `WithTokenFile(path)` | Credential file path | `.weixin-token.json` |
+| `WithContextTokenDir(dir)` | context_token storage directory | `.wechat-context-tokens` |
+| `WithContextTokenStore(store)` | Custom token store implementation | File-based |
+| `WithHTTPClient(client)` | Custom HTTP client | `&http.Client{}` |
+| `WithLogger(logger)` | Custom logger (`*slog.Logger`) | `slog.Default()` |
+| `WithChannelVersion(ver)` | Channel version | `1.0.3` |
+
+### Middleware
+
+```go
+// Built-in middlewares
+wechat.WithRecovery(logger)   // Panic recovery with stack trace logging
+wechat.WithLogging(logger)    // Request/response logging
+
+// Custom middleware
+func MyMiddleware() wechat.Middleware {
+    return func(next wechat.MessageHandler) wechat.MessageHandler {
+        return func(ctx context.Context, msg *wechat.Message) error {
+            // before
+            err := next(ctx, msg)
+            // after
+            return err
+        }
+    }
+}
+
+// Compose middlewares
+combined := wechat.Chain(m1, m2, m3) // m1(m2(m3(handler)))
+```
+
+## Architecture
+
+```mermaid
+flowchart TB
+    Bot["Bot (Top-level Facade API)"]
+    Client["Client (HTTP Infrastructure)"]
+
+    Bot --> Auth["Auth<br/>QR Login + Credential Persistence"]
+    Bot --> Poller["Poller<br/>Long-polling Message Reception"]
+    Bot --> TypingManager["TypingManager<br/>Typing Status Management"]
+    Bot --> MediaManager["MediaManager<br/>Media Encrypt/Upload/Download"]
+    Bot --> Middleware["Middleware Chain<br/>Recovery + Logging + Custom"]
+
+    Auth --> Client
+    Poller --> Client
+    TypingManager --> Client
+    MediaManager --> Client
+```
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file
+
+---
+
+<a name="中文文档"></a>
+
+# 中文文档
+
 基于腾讯官方 iLink Bot API 的微信机器人 Go SDK。
 
 ## 特性
@@ -15,6 +189,9 @@
 - Typing 状态指示（"对方正在输入中"）
 - 媒体文件处理（AES-128-ECB 加密 + CDN 上传/下载）
 - **智能文本分片**：自动分割长文本，优先在自然边界（换行、句号、空格）处切分
+- **中间件支持**：可组合的中间件链（日志、panic 恢复、自定义）
+- **优雅关闭**：等待进行中的 handler 完成
+- **Handler panic 恢复**：panic 不会中断轮询循环
 - 零外部依赖，仅使用 Go 标准库
 - Functional Options 配置模式
 - 完整的 context.Context 支持
@@ -83,6 +260,21 @@ func main() {
 }
 ```
 
+### 使用中间件
+
+```go
+bot := wechat.NewBot()
+
+// 在 Run 之前注册中间件
+bot.Use(
+    wechat.WithRecovery(slog.Default()),  // panic 恢复
+    wechat.WithLogging(slog.Default()),   // 请求日志
+)
+
+bot.OnMessage(handler)
+bot.Run(ctx)
+```
+
 ## API 文档
 
 ### Bot
@@ -92,21 +284,17 @@ func main() {
 | `NewBot(opts ...Option) *Bot` | 创建 Bot 实例 |
 | `Login(ctx, onQRCode) error` | 扫码登录（已有凭证自动复用） |
 | `OnMessage(handler)` | 注册消息处理回调 |
+| `Use(middlewares ...Middleware)` | 注册中间件 |
 | `Run(ctx) error` | 启动长轮询循环（阻塞） |
-| `Stop()` | 停止消息轮询 |
+| `Stop()` | 停止消息轮询（等待进行中的 handler） |
 | `Reply(ctx, msg, text) error` | 回复消息（自动使用 context_token） |
 | `SendText(ctx, toUserID, text, contextToken) error` | 发送文本消息 |
+| `SendTextToUser(ctx, toUserID, text) error` | 主动发送（需先有 context_token） |
 | `SendTyping(ctx, toUserID) error` | 显示"正在输入" |
 | `StopTyping(ctx, toUserID) error` | 取消"正在输入" |
 | `UploadFile(ctx, data, fileType) (*UploadResult, error)` | 上传媒体文件 |
 | `DownloadFile(ctx, url, aesKey) ([]byte, error)` | 下载并解密媒体文件 |
 | `Client() *Client` | 获取底层 HTTP 客户端（高级用法） |
-| `SendTextToUser(ctx, toUserID, text) error` | 主动发送文本（需先有 context_token） |
-| `SendImageToUser(ctx, toUserID, imageItem) error` | 主动发送图片 |
-| `SendFileToUser(ctx, toUserID, fileItem) error` | 主动发送文件 |
-| `GetContextToken(userID) (string, error)` | 获取用户的 context_token |
-| `ClearContextToken(userID) error` | 清除用户的 context_token |
-| `ClearAllContextTokens() error` | 清除所有 context_token |
 
 ### 配置选项
 
@@ -119,6 +307,29 @@ func main() {
 | `WithHTTPClient(client)` | 自定义 HTTP 客户端 | `&http.Client{}` |
 | `WithLogger(logger)` | 自定义日志（*slog.Logger） | `slog.Default()` |
 | `WithChannelVersion(ver)` | 频道版本号 | `1.0.3` |
+
+### 中间件
+
+```go
+// 内置中间件
+wechat.WithRecovery(logger)   // panic 恢复（附带堆栈日志）
+wechat.WithLogging(logger)    // 请求/响应日志
+
+// 自定义中间件
+func MyMiddleware() wechat.Middleware {
+    return func(next wechat.MessageHandler) wechat.MessageHandler {
+        return func(ctx context.Context, msg *wechat.Message) error {
+            // 前置逻辑
+            err := next(ctx, msg)
+            // 后置逻辑
+            return err
+        }
+    }
+}
+
+// 组合中间件
+combined := wechat.Chain(m1, m2, m3) // m1(m2(m3(handler)))
+```
 
 ### 消息类型
 
@@ -229,40 +440,6 @@ sequenceDiagram
 - 第一条消息能发，后续发不了 → context_token 未更新/未持久化
 - 进程重启后无法发消息 → context_token 未持久化
 
-### 消息流程
-
-```mermaid
-sequenceDiagram
-    participant User as 用户
-    participant Bot as Bot
-    participant Storage as 本地存储
-    participant iLink as iLink API
-    participant CDN as CDN
-
-    Note over Bot,Storage: 1. 登录认证
-    Bot->>iLink: 扫码登录
-    iLink-->>Bot: 返回 bot_token
-    Bot->>Storage: 持久化 bot_token<br/>(.weixin-token.json)
-
-    Note over Bot,iLink: 2. 长轮询收消息
-    loop 持续轮询
-        Bot->>iLink: POST /ilink/bot/getupdates<br/>(带 bot_token)
-        iLink-->>Bot: 返回消息 + context_token
-        Bot->>Storage: 保存 context_token<br/>(.wechat-context-tokens/)
-    end
-
-    Note over User,iLink: 3. 发送回复
-    Bot->>Storage: 读取 context_token
-    Bot->>iLink: POST /ilink/bot/sendmessage<br/>(带 context_token)
-    iLink-->>User: 消息送达微信客户端
-
-    Note over Bot,CDN: 4. 媒体文件
-    Bot->>Bot: AES-128-ECB 加密
-    Bot->>CDN: 上传加密文件
-    CDN-->>Bot: 返回 encrypted_param
-    Bot->>iLink: 发送消息<br/>(附带 CDN 引用参数)
-```
-
 ## 持久化机制
 
 本 SDK 实现了两级持久化机制：
@@ -366,8 +543,6 @@ err := bot.SendVideoFromPath(ctx, "user@im.wechat", "/path/to/video.mp4")
 
 ## 架构
 
-SDK 采用分层架构设计：
-
 ```mermaid
 flowchart TB
     Bot["Bot（顶层门面 API）"]
@@ -375,8 +550,9 @@ flowchart TB
 
     Bot --> Auth["Auth<br/>QR 码登录 + 凭证持久化"]
     Bot --> Poller["Poller<br/>长轮询消息接收"]
-    Bot --> TypingManager["TypingManager<br/>“正在输入” 状态管理"]
+    Bot --> TypingManager["TypingManager<br/>"正在输入" 状态管理"]
     Bot --> MediaManager["MediaManager<br/>媒体加密上传/下载"]
+    Bot --> MiddlewareChain["中间件链<br/>恢复 + 日志 + 自定义"]
 
     Auth --> Client
     Poller --> Client
