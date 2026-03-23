@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestFileContextTokenStore_SaveAndLoad(t *testing.T) {
@@ -270,4 +271,94 @@ func TestMemoryContextTokenStore_Concurrent(t *testing.T) {
 		}(i)
 	}
 	wg.Wait()
+}
+
+func TestFileContextTokenStore_CleanExpired(t *testing.T) {
+	tmpDir := t.TempDir()
+	store, err := NewFileContextTokenStore(tmpDir)
+	if err != nil {
+		t.Fatalf("NewFileContextTokenStore() error = %v", err)
+	}
+
+	// Save tokens
+	if err := store.Save("user1", "token1"); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+	if err := store.Save("user2", "token2"); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	// Count should be 2
+	if c := store.Count(); c != 2 {
+		t.Errorf("Count() = %d, want 2", c)
+	}
+
+	// No tokens expired yet (maxAge = 1 hour)
+	removed, err := store.CleanExpired(1 * time.Hour)
+	if err != nil {
+		t.Fatalf("CleanExpired() error = %v", err)
+	}
+	if removed != 0 {
+		t.Errorf("CleanExpired(1h) removed %d, want 0", removed)
+	}
+
+	// All tokens expired (maxAge = 0)
+	removed, err = store.CleanExpired(0)
+	if err != nil {
+		t.Fatalf("CleanExpired() error = %v", err)
+	}
+	if removed != 2 {
+		t.Errorf("CleanExpired(0) removed %d, want 2", removed)
+	}
+
+	// Count should be 0
+	if c := store.Count(); c != 0 {
+		t.Errorf("Count() = %d, want 0", c)
+	}
+
+	// Verify files are deleted
+	entries, _ := os.ReadDir(tmpDir)
+	jsonCount := 0
+	for _, e := range entries {
+		if filepath.Ext(e.Name()) == ".json" {
+			jsonCount++
+		}
+	}
+	if jsonCount != 0 {
+		t.Errorf("expected 0 json files after cleanup, got %d", jsonCount)
+	}
+}
+
+func TestMemoryContextTokenStore_CleanExpired(t *testing.T) {
+	store := NewMemoryContextTokenStore()
+
+	// Save tokens
+	store.Save("user1", "token1")
+	store.Save("user2", "token2")
+
+	if c := store.Count(); c != 2 {
+		t.Errorf("Count() = %d, want 2", c)
+	}
+
+	// No tokens expired (maxAge = 1 hour)
+	removed, err := store.CleanExpired(1 * time.Hour)
+	if err != nil {
+		t.Fatalf("CleanExpired() error = %v", err)
+	}
+	if removed != 0 {
+		t.Errorf("CleanExpired(1h) removed %d, want 0", removed)
+	}
+
+	// All tokens expired (maxAge = 0)
+	removed, err = store.CleanExpired(0)
+	if err != nil {
+		t.Fatalf("CleanExpired() error = %v", err)
+	}
+	if removed != 2 {
+		t.Errorf("CleanExpired(0) removed %d, want 2", removed)
+	}
+
+	if c := store.Count(); c != 0 {
+		t.Errorf("Count() = %d, want 0", c)
+	}
 }

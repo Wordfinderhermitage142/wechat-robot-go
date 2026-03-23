@@ -211,6 +211,43 @@ func (f *FileContextTokenStore) ClearAll() error {
 	return nil
 }
 
+// Count returns the number of tokens currently stored in cache.
+func (f *FileContextTokenStore) Count() int {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	return len(f.tokens)
+}
+
+// CleanExpired removes tokens older than maxAge from both memory and disk.
+// Returns the number of tokens removed.
+func (f *FileContextTokenStore) CleanExpired(maxAge time.Duration) (int, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	now := time.Now().UTC()
+	removed := 0
+	for userID, data := range f.tokens {
+		updatedAt, err := time.Parse(time.RFC3339, data.UpdatedAt)
+		if err != nil {
+			// Cannot parse time, remove as stale
+			path := f.resolvePath(userID)
+			_ = os.Remove(path)
+			delete(f.tokens, userID)
+			removed++
+			continue
+		}
+		if now.Sub(updatedAt) > maxAge {
+			path := f.resolvePath(userID)
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return removed, fmt.Errorf("remove expired token file %s: %w", path, err)
+			}
+			delete(f.tokens, userID)
+			removed++
+		}
+	}
+	return removed, nil
+}
+
 // MemoryContextTokenStore implements ContextTokenStore with in-memory storage only.
 // This is useful for testing or when persistence is not required.
 type MemoryContextTokenStore struct {
@@ -264,4 +301,35 @@ func (m *MemoryContextTokenStore) ClearAll() error {
 
 	m.tokens = make(map[string]*ContextTokenData)
 	return nil
+}
+
+// Count returns the number of tokens currently stored.
+func (m *MemoryContextTokenStore) Count() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return len(m.tokens)
+}
+
+// CleanExpired removes tokens older than maxAge.
+// Returns the number of tokens removed.
+func (m *MemoryContextTokenStore) CleanExpired(maxAge time.Duration) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	now := time.Now().UTC()
+	removed := 0
+	for userID, data := range m.tokens {
+		updatedAt, err := time.Parse(time.RFC3339, data.UpdatedAt)
+		if err != nil {
+			// Cannot parse time, remove as stale
+			delete(m.tokens, userID)
+			removed++
+			continue
+		}
+		if now.Sub(updatedAt) > maxAge {
+			delete(m.tokens, userID)
+			removed++
+		}
+	}
+	return removed, nil
 }
