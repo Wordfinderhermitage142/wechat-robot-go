@@ -1,0 +1,49 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+
+# Build artifacts
+/echo
+/dist
+
+# Credentials and tokens (sensitive)
+.weixin-token.json
+*.weixin-token*.json
+.wechat-context-tokens/
+*.context-token*.json
+
+# Session data
+.openclaw/
+sessions/
+*.session
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# OS specific
+Thumbs.db
