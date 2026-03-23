@@ -1,5 +1,10 @@
 # wechat-robot-go
 
+[![CI](https://github.com/SpellingDragon/wechat-robot-go/actions/workflows/ci.yml/badge.svg)](https://github.com/SpellingDragon/wechat-robot-go/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/SpellingDragon/wechat-robot-go)](https://goreportcard.com/report/github.com/SpellingDragon/wechat-robot-go)
+[![GoDoc](https://pkg.go.dev/badge/github.com/SpellingDragon/wechat-robot-go.svg)](https://pkg.go.dev/github.com/SpellingDragon/wechat-robot-go)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 基于腾讯官方 iLink Bot API 的微信机器人 Go SDK。
 
 ## 特性

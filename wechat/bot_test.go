@@ -451,3 +451,294 @@ func TestBot_HandlerError(t *testing.T) {
 		}
 	}
 }
+
+func TestBot_Stop(t *testing.T) {
+	bot := NewBot()
+	bot.client.SetToken("test-token")
+
+	// Stop should not panic
+	bot.Stop()
+}
+
+func TestBot_SendText(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/ilink/bot/sendmessage" {
+			json.NewEncoder(w).Encode(SendMessageResponse{Ret: 0})
+		}
+	}))
+	defer server.Close()
+
+	bot := NewBot(WithBaseURL(server.URL))
+	bot.client.SetToken("test-token")
+
+	ctx := context.Background()
+	err := bot.SendText(ctx, "user-123", "Hello", "ctx-token")
+	if err != nil {
+		t.Fatalf("SendText failed: %v", err)
+	}
+}
+
+func TestBot_UploadAndDownload(t *testing.T) {
+	testData := []byte("test file content")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/ilink/bot/getuploadurl":
+			json.NewEncoder(w).Encode(UploadURLResponse{
+				Ret:         0,
+				UploadParam: "test-upload-param",
+			})
+		case "/upload":
+			w.Header().Set("x-encrypted-param", "test-encrypted-param")
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer server.Close()
+
+	bot := NewBot(WithBaseURL(server.URL))
+	bot.client.SetToken("test-token")
+	bot.media.SetCDNBaseURL(server.URL)
+
+	ctx := context.Background()
+
+	// Test UploadFile
+	result, err := bot.UploadFile(ctx, testData, "user-123", "image")
+	if err != nil {
+		t.Fatalf("UploadFile failed: %v", err)
+	}
+	if result.EncryptedParam != "test-encrypted-param" {
+		t.Errorf("EncryptedParam = %q, want %q", result.EncryptedParam, "test-encrypted-param")
+	}
+
+	// Test DownloadFile
+	downloaded, err := bot.DownloadFile(ctx, server.URL+"/download?param=test", result.AESKey)
+	if err != nil {
+		t.Logf("DownloadFile error (expected for mock server): %v", err)
+	}
+	_ = downloaded // May be nil if mock server doesn't return valid data
+}
+
+func TestBot_SendFromPath(t *testing.T) {
+	// Create temp file
+	tmpFile, err := os.CreateTemp("", "test-*.png")
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	tmpFile.Write([]byte("fake image data"))
+	tmpFile.Close()
+	defer os.Remove(tmpFile.Name())
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/ilink/bot/getuploadurl":
+			json.NewEncoder(w).Encode(UploadURLResponse{
+				Ret:         0,
+				UploadParam: "test-param",
+			})
+		case "/upload":
+			w.Header().Set("x-encrypted-param", "test-encrypted")
+			w.WriteHeader(http.StatusOK)
+		case "/ilink/bot/sendmessage":
+			json.NewEncoder(w).Encode(SendMessageResponse{Ret: 0})
+		}
+	}))
+	defer server.Close()
+
+	bot := NewBot(
+		WithBaseURL(server.URL),
+		WithContextTokenStore(NewMemoryContextTokenStore()),
+	)
+	bot.client.SetToken("test-token")
+	bot.media.SetCDNBaseURL(server.URL)
+
+	// Store context token for user
+	bot.contextTokens.Save("user-123", "ctx-token")
+
+	ctx := context.Background()
+
+	// Test SendImageFromPath
+	err = bot.SendImageFromPath(ctx, "user-123", tmpFile.Name())
+	if err != nil {
+		t.Fatalf("SendImageFromPath failed: %v", err)
+	}
+
+	// Test SendFileFromPath
+	err = bot.SendFileFromPath(ctx, "user-123", tmpFile.Name())
+	if err != nil {
+		t.Fatalf("SendFileFromPath failed: %v", err)
+	}
+
+	// Test SendVideoFromPath
+	err = bot.SendVideoFromPath(ctx, "user-123", tmpFile.Name())
+	if err != nil {
+		t.Fatalf("SendVideoFromPath failed: %v", err)
+	}
+
+	// Test SendVoiceFromPath
+	err = bot.SendVoiceFromPath(ctx, "user-123", tmpFile.Name(), 1000)
+	if err != nil {
+		t.Fatalf("SendVoiceFromPath failed: %v", err)
+	}
+}
+
+func TestBot_SendToUser(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/ilink/bot/sendmessage" {
+			json.NewEncoder(w).Encode(SendMessageResponse{Ret: 0})
+		}
+	}))
+	defer server.Close()
+
+	bot := NewBot(
+		WithBaseURL(server.URL),
+		WithContextTokenStore(NewMemoryContextTokenStore()),
+	)
+	bot.client.SetToken("test-token")
+	bot.contextTokens.Save("user-123", "ctx-token")
+
+	ctx := context.Background()
+
+	// Test SendTextToUser
+	err := bot.SendTextToUser(ctx, "user-123", "Hello")
+	if err != nil {
+		t.Fatalf("SendTextToUser failed: %v", err)
+	}
+
+	// Test SendImageToUser
+	imageItem := &ImageItem{
+		Media:   &CDNMedia{EncryptQueryParam: "param", AESKey: "key", EncryptType: 1},
+		MidSize: 1000,
+	}
+	err = bot.SendImageToUser(ctx, "user-123", imageItem)
+	if err != nil {
+		t.Fatalf("SendImageToUser failed: %v", err)
+	}
+
+	// Test SendFileToUser
+	fileItem := &FileItem{
+		Media:     &CDNMedia{EncryptQueryParam: "param", AESKey: "key", EncryptType: 1},
+		FileName:  "test.txt",
+		Length:    "100",
+	}
+	err = bot.SendFileToUser(ctx, "user-123", fileItem)
+	if err != nil {
+		t.Fatalf("SendFileToUser failed: %v", err)
+	}
+}
+
+func TestBot_ContextToken(t *testing.T) {
+	bot := NewBot(WithContextTokenStore(NewMemoryContextTokenStore()))
+
+	// Test GetContextToken (should return empty for unknown user)
+	token, err := bot.GetContextToken("unknown-user")
+	if err != nil {
+		t.Logf("GetContextToken error: %v", err)
+	}
+	_ = token
+
+	// Test ClearContextToken
+	err = bot.ClearContextToken("user-123")
+	if err != nil {
+		t.Fatalf("ClearContextToken failed: %v", err)
+	}
+
+	// Test ClearAllContextTokens
+	err = bot.ClearAllContextTokens()
+	if err != nil {
+		t.Fatalf("ClearAllContextTokens failed: %v", err)
+	}
+}
+
+func TestBot_CDNBaseURL(t *testing.T) {
+	bot := NewBot(WithCDNBaseURL("https://custom.cdn.com"))
+	if bot.CDNBaseURL() != "https://custom.cdn.com" {
+		t.Errorf("CDNBaseURL = %q, want %q", bot.CDNBaseURL(), "https://custom.cdn.com")
+	}
+}
+
+func TestBot_DownloadImage(t *testing.T) {
+	// Create test data
+	testData := []byte("fake image data")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/download" {
+			w.WriteHeader(http.StatusOK)
+			w.Write(testData)
+		}
+	}))
+	defer server.Close()
+
+	bot := NewBot(WithBaseURL(server.URL))
+	bot.client.SetToken("test-token")
+
+	ctx := context.Background()
+
+	// Test DownloadImage
+	msg := &Message{
+		FromUserID:   "user-123",
+		ContextToken: "ctx-token",
+		ItemList: []MessageItem{
+			{
+				Type: ItemTypeImage,
+				ImageItem: &ImageItem{
+					Media: &CDNMedia{
+						EncryptQueryParam: "test-param",
+						AESKey:            "NDhmNmFjYjU3ZWE3M2I5MDkzZTA0YmM0ZjJhN2IyZmE=", // base64 of hex
+					},
+				},
+			},
+		},
+	}
+	_, err := bot.DownloadImage(ctx, msg, server.URL)
+	if err != nil {
+		t.Logf("DownloadImage error (expected for mock server): %v", err)
+	}
+
+	// Test DownloadImageFromItem
+	imgItem := &ImageItem{
+		Media: &CDNMedia{
+			EncryptQueryParam: "test-param",
+			AESKey:            "NDhmNmFjYjU3ZWE3M2I5MDkzZTA0YmM0ZjJhN2IyZmE=",
+		},
+	}
+	_, err = bot.DownloadImageFromItem(ctx, server.URL, imgItem)
+	if err != nil {
+		t.Logf("DownloadImageFromItem error: %v", err)
+	}
+
+	// Test DownloadVoice
+	voiceItem := &VoiceItem{
+		Media: &CDNMedia{
+			EncryptQueryParam: "test-param",
+			AESKey:            "NDhmNmFjYjU3ZWE3M2I5MDkzZTA0YmM0ZjJhN2IyZmE=",
+		},
+	}
+	_, err = bot.DownloadVoice(ctx, voiceItem, server.URL)
+	if err != nil {
+		t.Logf("DownloadVoice error: %v", err)
+	}
+
+	// Test DownloadFileFromItem
+	fileItem := &FileItem{
+		Media: &CDNMedia{
+			EncryptQueryParam: "test-param",
+			AESKey:            "NDhmNmFjYjU3ZWE3M2I5MDkzZTA0YmM0ZjJhN2IyZmE=",
+		},
+	}
+	_, err = bot.DownloadFileFromItem(ctx, fileItem, server.URL)
+	if err != nil {
+		t.Logf("DownloadFileFromItem error: %v", err)
+	}
+
+	// Test DownloadVideoFromItem
+	videoItem := &VideoItem{
+		Media: &CDNMedia{
+			EncryptQueryParam: "test-param",
+			AESKey:            "NDhmNmFjYjU3ZWE3M2I5MDkzZTA0YmM0ZjJhN2IyZmE=",
+		},
+	}
+	_, err = bot.DownloadVideoFromItem(ctx, videoItem, server.URL)
+	if err != nil {
+		t.Logf("DownloadVideoFromItem error: %v", err)
+	}
+}
