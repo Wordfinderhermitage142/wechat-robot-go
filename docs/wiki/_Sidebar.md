@@ -1,6 +1,7 @@
 ## 导航
 
 * [[Home|首页]]
+* [[iLink-API-Reference|iLink API 参考]]
 * [[Architecture|架构设计]]
 * [[Middleware-Guide|中间件指南]]
 
