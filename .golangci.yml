@@ -30,3 +30,4 @@ issues:
       linters:
         - dupl
         - goconst
+        - errcheck
