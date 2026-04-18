@@ -1,6 +1,7 @@
 # wechat-robot-go
 
-[![CI](https://github.com/SpellingDragon/wechat-robot-go/actions/workflows/ci.yml/badge.svg)](https://github.com/SpellingDragon/wechat-robot-go/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/SpellingDragon/wechat-robot-go/ci.yml?branch=main&logo=github)](https://github.com/SpellingDragon/wechat-robot-go/actions)
+[![Latest Release](https://img.shields.io/github/v/release/SpellingDragon/wechat-robot-go?logo=github)](https://github.com/SpellingDragon/wechat-robot-go/releases/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/SpellingDragon/wechat-robot-go)](https://goreportcard.com/report/github.com/SpellingDragon/wechat-robot-go)
 [![GoDoc](https://pkg.go.dev/badge/github.com/SpellingDragon/wechat-robot-go.svg)](https://pkg.go.dev/github.com/SpellingDragon/wechat-robot-go)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
